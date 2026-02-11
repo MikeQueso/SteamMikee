@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteamMike - Practice Lab</title>
+    <style>
+        :root {
+            --steam-blue: #66c0f4;
+            --steam-dark: #171d24;
+            --steam-bg: #1b2838;
+            --steam-text: #c7d5e0;
+            --steam-green: #bbee66;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--steam-bg); color: var(--steam-text); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        header { background: var(--steam-dark); padding: 15px 5%; border-bottom: 3px solid var(--steam-blue); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        h1 { color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px; }
+
+        .main-container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+
+        .seccion { background: rgba(23, 29, 36, 0.9); padding: 25px; border-radius: 4px; border: 1px solid #2a475e; margin-bottom: 40px; }
+        .grid-juegos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; }
+        
+        .card-juego { background: var(--steam-bg); border-radius: 4px; border: 1px solid #3d6a8d; overflow: hidden; transition: 0.3s; display: flex; flex-direction: column; }
+        .card-juego:hover { transform: translateY(-5px); border-color: var(--steam-blue); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        
+        .img-box { width: 100%; height: 320px; background: #000; overflow: hidden; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .banner-horizontal .img-box { height: 160px; }
+        
+        .info-box { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .info-box strong { color: white; font-size: 16px; display: block; margin-bottom: 10px; }
+        .precio { color: var(--steam-green); font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+
+        .btn-add { background: linear-gradient(to bottom, #67c1f5 0%, #417a9b 100%); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 2px; font-weight: bold; }
+
+        #cart-sidebar {
+            position: fixed; right: -400px; top: 0; width: 350px; height: 100%;
+            background: #171d24; border-left: 2px solid var(--steam-blue);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.7); transition: 0.4s; z-index: 1000;
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        #cart-sidebar.active { right: 0; }
+        .cart-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a475e; padding-bottom: 10px; margin-bottom: 15px; }
+        .cart-items { flex-grow: 1; overflow-y: auto; }
+        .item-carrito { display: flex; justify-content: space-between; align-items: center; background: #1b2838; padding: 10px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #2a475e; }
+        .btn-remove { background: #e64d4d; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 8px; }
+
+        .area-chat { background: #f0f0f0; color: #333; padding: 20px; border-radius: 4px; }
+        #chat-display { height: 150px; overflow-y: auto; background: white; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; display: flex; flex-direction: column; gap: 5px; }
+        .bot-msg { color: #1a5a96; font-weight: 500; }
+        .sys-msg { color: #666; font-style: italic; font-size: 0.9em; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+
+        #checkout-form { display: none; padding-top: 15px; border-top: 1px solid #2a475e; }
+        input { width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 3px; border: 1px solid #ccc; }
+        .btn-confirmar { background: linear-gradient(to right, #75b022, #588a1b); color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; border-radius: 3px; }
+    </style>
+</head>
+<body onload="iniciarChat()">
+
+    <div id="cart-sidebar">
+        <div class="cart-header">
+            <h3 style="margin:0; color:var(--steam-blue);">Tu Carrito</h3>
+            <button onclick="toggleCart()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <div id="cart-items" class="cart-items"></div>
+        <div style="padding: 20px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:20px; margin-bottom:15px;">
+                <span>Total:</span> <span id="cart-total-val" style="color:var(--steam-green);">$0.00</span>
+            </div>
+            <button class="btn-confirmar" id="btn-pre-pago" onclick="mostrarCheckout()">FINALIZAR COMPRA</button>
+            <div id="checkout-form">
+                <input type="text" id="userAlias" placeholder="Introduce tu Gamertag">
+                <button class="btn-confirmar" onclick="procesarPago()">PAGAR AHORA</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <h1>SteamMike</h1>
+        <button class="btn-add" style="width: auto; padding: 10px 20px;" onclick="toggleCart()">🛒 CARRITO (<span id="cart-count">0</span>)</button>
+    </header>
+
+    <div class="main-container">
+        <div class="seccion">
+            <h2 style="color: #66c0f4; margin-top: 0;">Practica sobre (chat sencillo, compra sencilla y servicio con token)</h2>
+            <div class="grid-juegos">
+                <div class="card-juego banner-horizontal">
+                    <div class="img-box"><img src="https://img.asmedia.epimg.net/resizer/v2/KCBZR3TQXRPTPK3WWHZZNIBA4I.jpg?auth=320bb9b1132493e0dc27cc129bb39202867d7b5e57000dbb930d423371488b85&width=1200&height=675&smart=true" alt="Borderlands 3"></div>
+                    <div class="info-box"><strong>Borderlands 3</strong><span class="precio">$30.00</span><button class="btn-add" onclick="agregar('Borderlands 3', 30)">Añadir al carrito</button></div>
+                </div>
+                <div class="card-juego">
+                    <div class="img-box"><img src="https://i.pinimg.com/236x/41/fc/cb/41fccbc3e859a266af8dccffa1c52117.jpg" alt="REPO"></div>
+                    <div class="info-box"><strong>R.E.P.O.</strong><span class="precio">$20.00</span><button class="btn-add" onclick="agregar('R.E.P.O.', 20)">Añadir al carrito</button></div>
+                </div>
+                <div class="card-juego banner-horizontal">
+                    <div class="img-box"><img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/105600/header.jpg" alt="Terraria"></div>
+                    <div class="info-box"><strong>Terraria</strong><span class="precio">$10.00</span><button class="btn-add" onclick="agregar('Terraria', 10)">Añadir al carrito</button></div>
+                </div>
+                <div class="card-juego">
+                    <div class="img-box"><img src="https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/store/software/switch/70010000021401/59686225dba24636062a421593effdb4fe136bbfd67b11c621fe92ed36a65734" alt="Minecraft Dungeons"></div>
+                    <div class="info-box"><strong>Minecraft Dungeons</strong><span class="precio">$20.00</span><button class="btn-add" onclick="agregar('Minecraft Dungeons', 20)">Añadir al carrito</button></div>
+                </div>
+                <div class="card-juego">
+                    <div class="img-box"><img src="https://wpassets.halowaypoint.com/wp-content/2021/12/HaloInfinite_CampaignKeyArt_CLEAN_1920x1080.jpg" alt="Halo"></div>
+                    <div class="info-box"><strong>Halo Infinite</strong><span class="precio">$40.00</span><button class="btn-add" onclick="agregar('Halo Infinite', 40)">Añadir al carrito</button></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="area-chat">
+            <h3>Muro de la Comunidad</h3>
+            <div id="chat-display"></div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="cAlias" placeholder="Alias" style="width: 20%;">
+                <input type="text" id="cMsg" placeholder="Escribe algo..." style="width: 70%;">
+                <button onclick="enviarChat()" style="width: 10%; background: var(--steam-blue); color: white; border: none; cursor: pointer; border-radius: 4px;">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let carrito = [];
+        let total = 0;
+
+        function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); }
+
+        function agregar(nombre, precio) {
+            carrito.push({nombre, precio});
+            total += precio;
+            actualizarInterfaz();
+            if(!document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+        }
+
+        function eliminar(index) {
+            total -= carrito[index].precio;
+            carrito.splice(index, 1);
+            actualizarInterfaz();
+        }
+
+        function actualizarInterfaz() {
+            const container = document.getElementById('cart-items');
+            document.getElementById('cart-count').innerText = carrito.length;
+            document.getElementById('cart-total-val').innerText = "$" + total.toFixed(2);
+            if(carrito.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#555; margin-top:20px;">Tu carrito está vacío</p>';
+                document.getElementById('btn-pre-pago').style.display = "none";
+            } else {
+                document.getElementById('btn-pre-pago').style.display = "block";
+                container.innerHTML = carrito.map((item, index) => `
+                    <div class="item-carrito">
+                        <span>${item.nombre}</span>
+                        <div>
+                            <span style="color:var(--steam-green); margin-right:10px;">$${item.precio}</span>
+                            <button class="btn-remove" onclick="eliminar(${index})">x</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function mostrarCheckout() {
+            document.getElementById('btn-pre-pago').style.display = "none";
+            document.getElementById('checkout-form').style.display = "block";
+        }
+
+        function procesarPago() {
+            const alias = document.getElementById('userAlias').value;
+            if(!alias) return alert("Ingresa tu Gamertag.");
+            alert("¡Compra Exitosa!\nToken generado para: " + alias + "\nTotal: $" + total);
+            location.reload();
+        }
+
+        function iniciarChat() {
+            document.getElementById('chat-display').innerHTML = `<div class="sys-msg"><strong>Sistema:</strong> ¡Manda algun mensaje y has nuevos amigos!</div>`;
+        }
+
+        function enviarChat() {
+            const a = document.getElementById('cAlias').value;
+            const m = document.getElementById('cMsg').value;
+            if(a && m) {
+                const d = document.getElementById('chat-display');
+                d.innerHTML += `<div><strong>${a}:</strong> ${m}</div>`;
+                document.getElementById('cMsg').value = "";
+                d.scrollTop = d.scrollHeight;
+                setTimeout(() => {
+                    const bots = ["GamerPro", "PixelMike", "MasterChief"];
+                    const rBot = bots[Math.floor(Math.random() * bots.length)];
+                    d.innerHTML += `<div class="bot-msg"><strong>${rBot}:</strong> ¡Hola! Bienvenido al chat.</div>`;
+                    d.scrollTop = d.scrollHeight;
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>
